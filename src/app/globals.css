@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+/* Paleta oscura fija. --color-brand y --color-brand-ink son el color de marca de cada
+   organización: layout.tsx los sobreescribe en runtime leyendo `organizaciones.color_marca`
+   (ver src/lib/color.ts). Los valores de acá abajo son el fallback sin sesión (login, registro). */
+@theme inline {
+  --color-canvas: #0d0e11;
+  --color-surface: #15171c;
+  --color-raised: #1d2026;
+  --color-line: #2b2f38;
+  --color-fg: #f1efea;
+  --color-muted: #8c919c;
+  --color-brand: #f28c1b;
+  --color-brand-ink: #1a1004;
+  --color-ok: #45c48b;
+  --color-bad: #e5584f;
+  --font-display: var(--font-poppins), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: var(--font-poppins), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--color-canvas);
+  color: var(--color-fg);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/* Franja de acento con el color de marca, entre el header/menú y el contenido. */
+.flag {
+  height: 3px;
+  flex: none;
+  background: var(--color-brand);
+  opacity: 0.8;
+}
