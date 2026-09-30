@@ -1,11 +1,3 @@
-export const TAMANOS = {
-  chico: "Chico",
-  mediano: "Mediano",
-  grande: "Grande",
-  camioneta: "Camioneta",
-} as const;
-export type Tamano = keyof typeof TAMANOS;
-
 export const MEDIOS_PAGO = {
   efectivo: "Efectivo",
   transferencia: "Transferencia",
@@ -30,15 +22,6 @@ export function formatFechaHora(iso: string) {
 
 /** "2026-09-26" en horario de Montevideo. */
 export const diaLocal = (iso: string) => fechaDia.format(new Date(iso));
-
-/** Deja la matrícula en mayúsculas y con un solo espacio: "sab   1234" -> "SAB 1234".
- *  Solo para strings de formulario ya leídos (texto(fd, ...), useState); nunca para un valor
- *  leído de la base, que puede ser null (usar matriculaSinEspacios para eso). */
-export const normalizarMatricula = (m: string) => m.trim().replace(/\s+/g, " ").toUpperCase();
-
-/** Para comparar matrículas en buscadores: sin espacios, en mayúsculas. Tolera null/undefined
- *  porque la matrícula de un vehículo es opcional. */
-export const matriculaSinEspacios = (m: string | null | undefined) => (m ?? "").replace(/\s+/g, "").toUpperCase();
 
 export const iniciales = (nombre: string) =>
   nombre

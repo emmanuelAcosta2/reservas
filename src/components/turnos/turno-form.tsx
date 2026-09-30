@@ -7,7 +7,7 @@ import { MEDIOS_PAGO } from "@/lib/dominio";
 import { formatPesos } from "@/lib/format";
 import { buscarConflictos, guardarTurno, type Conflicto, type FormState } from "./actions";
 import { useCatalogo } from "./catalogo";
-import { SelectorVehiculo } from "./selector-vehiculo";
+import { SelectorCliente } from "./selector-cliente";
 
 type ItemForm = {
   clave: string;
@@ -35,7 +35,7 @@ export function TurnoForm({ turno, fecha, close }: { turno?: TurnoVista; fecha?:
     if (state.ok) close();
   }, [state, close]);
 
-  const [vehiculoId, setVehiculoId] = useState(turno?.vehiculo.id ?? 0);
+  const [clienteId, setClienteId] = useState(turno?.cliente.id ?? 0);
   const [items, setItems] = useState<ItemForm[]>(() =>
     (turno?.items ?? []).map((i, n) => ({
       clave: `e${n}`,
@@ -53,7 +53,7 @@ export function TurnoForm({ turno, fecha, close }: { turno?: TurnoVista; fecha?:
   const [horaSel, setHoraSel] = useState(turno?.hora ?? "16:00");
   const [conflictos, setConflictos] = useState<Conflicto[]>([]);
 
-  // Avisa si hay otro turno a menos de 30 minutos. No bloquea: el taller puede atender dos autos a la vez.
+  // Avisa si hay otro turno a menos de 30 minutos. No bloquea: puede haber más de un turno en simultáneo.
   useEffect(() => {
     if (!fechaSel || !horaSel) return;
     let vigente = true;
@@ -82,8 +82,8 @@ export function TurnoForm({ turno, fecha, close }: { turno?: TurnoVista; fecha?:
       {turno && <input type="hidden" name="id" value={turno.id} />}
       <input type="hidden" name="items" value={payload} />
 
-      <input type="hidden" name="vehiculo_id" value={vehiculoId} />
-      <SelectorVehiculo valor={vehiculoId} onChange={setVehiculoId} />
+      <input type="hidden" name="cliente_id" value={clienteId} />
+      <SelectorCliente valor={clienteId} onChange={setClienteId} />
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Fecha" htmlFor="t-fecha">
@@ -99,10 +99,10 @@ export function TurnoForm({ turno, fecha, close }: { turno?: TurnoVista; fecha?:
           <b className="text-brand">Ya hay {conflictos.length === 1 ? "un turno" : "turnos"} cerca de ese horario</b>
           {conflictos.map((c, i) => (
             <span key={i} className="text-[13px] text-muted tabular-nums">
-              {c.hora} · <b className="text-fg">{c.matricula || "Sin matrícula"}</b> — {c.cliente}
+              {c.hora} — {c.cliente}
             </span>
           ))}
-          <span className="text-[13px] text-muted">Podés agendar igual si atienden dos autos a la vez.</span>
+          <span className="text-[13px] text-muted">Podés agendar igual si atienden dos turnos en simultáneo.</span>
         </div>
       )}
 

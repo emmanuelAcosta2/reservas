@@ -27,14 +27,14 @@ export function Buscador() {
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor="q" className="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">
-        Buscar por nombre o matrícula
+        Buscar por nombre o teléfono
       </label>
       <input
         id="q"
         type="search"
         value={valor}
         onChange={(e) => setValor(e.target.value)}
-        placeholder="Ej: SAB 1234"
+        placeholder="Ej: María o 099 000 000"
         autoComplete="off"
         className={`${inputCls} lg:max-w-md`}
       />

@@ -201,54 +201,29 @@ isOneToOne: false
                   ]
                 },"turnos": {
                   Row: {
-                    "creado_en": string,"estado": string,"id": number,"inicio": string,"medio_pago": string | null,"notas": string | null,"organizacion_id": string,"vehiculo_id": number
+                    "cliente_id": number,"creado_en": string,"estado": string,"id": number,"inicio": string,"medio_pago": string | null,"notas": string | null,"organizacion_id": string
                   }
                   Insert: {
-                    "creado_en"?: string,"estado"?: string,"id"?: never,"inicio": string,"medio_pago"?: string | null,"notas"?: string | null,"organizacion_id"?: string,"vehiculo_id": number
+                    "cliente_id": number,"creado_en"?: string,"estado"?: string,"id"?: never,"inicio": string,"medio_pago"?: string | null,"notas"?: string | null,"organizacion_id"?: string
                   }
                   Update: {
-                    "creado_en"?: string,"estado"?: string,"id"?: never,"inicio"?: string,"medio_pago"?: string | null,"notas"?: string | null,"organizacion_id"?: string,"vehiculo_id"?: number
+                    "cliente_id"?: number,"creado_en"?: string,"estado"?: string,"id"?: never,"inicio"?: string,"medio_pago"?: string | null,"notas"?: string | null,"organizacion_id"?: string
                   }
                   Relationships: [
                     {
-      foreignKeyName: "turnos_organizacion_id_fkey"
-      columns: ["organizacion_id"]
-isOneToOne: false
-      referencedRelation: "organizaciones"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "turnos_vehiculo_id_fkey"
-      columns: ["vehiculo_id"]
-isOneToOne: false
-      referencedRelation: "vehiculos"
-      referencedColumns: ["id"]
-    }
-                  ]
-                },"vehiculos": {
-                  Row: {
-                    "cliente_id": number,"creado_en": string,"id": number,"marca_modelo": string,"matricula": string | null,"organizacion_id": string,"tamano": string
-                  }
-                  Insert: {
-                    "cliente_id": number,"creado_en"?: string,"id"?: never,"marca_modelo"?: string,"matricula"?: string | null,"organizacion_id"?: string,"tamano"?: string
-                  }
-                  Update: {
-                    "cliente_id"?: number,"creado_en"?: string,"id"?: never,"marca_modelo"?: string,"matricula"?: string | null,"organizacion_id"?: string,"tamano"?: string
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "vehiculos_cliente_id_fkey"
+      foreignKeyName: "turnos_cliente_id_fkey"
       columns: ["cliente_id"]
 isOneToOne: false
       referencedRelation: "clientes"
       referencedColumns: ["id"]
     },{
-      foreignKeyName: "vehiculos_cliente_id_fkey"
+      foreignKeyName: "turnos_cliente_id_fkey"
       columns: ["cliente_id"]
 isOneToOne: false
       referencedRelation: "v_clientes_resumen"
       referencedColumns: ["cliente_id"]
     },{
-      foreignKeyName: "vehiculos_organizacion_id_fkey"
+      foreignKeyName: "turnos_organizacion_id_fkey"
       columns: ["organizacion_id"]
 isOneToOne: false
       referencedRelation: "organizaciones"
@@ -274,28 +249,31 @@ isOneToOne: false
                   ]
                 },"v_turnos_total": {
                   Row: {
-                    "cantidad_items": number | null,"estado": string | null,"fecha": string | null,"id": number | null,"inicio": string | null,"medio_pago": string | null,"notas": string | null,"total": number | null,"vehiculo_id": number | null
+                    "cantidad_items": number | null,"cliente_id": number | null,"estado": string | null,"fecha": string | null,"id": number | null,"inicio": string | null,"medio_pago": string | null,"notas": string | null,"total": number | null
                   }
                   Relationships: [
                     {
-      foreignKeyName: "turnos_vehiculo_id_fkey"
-      columns: ["vehiculo_id"]
+      foreignKeyName: "turnos_cliente_id_fkey"
+      columns: ["cliente_id"]
 isOneToOne: false
-      referencedRelation: "vehiculos"
+      referencedRelation: "clientes"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "turnos_cliente_id_fkey"
+      columns: ["cliente_id"]
+isOneToOne: false
+      referencedRelation: "v_clientes_resumen"
+      referencedColumns: ["cliente_id"]
     }
                   ]
                 }
           }
           Functions: {
-            "crear_cliente":
-{ Args: { "p_marca_modelo": string,"p_matricula": string,"p_nombre": string,"p_notas": string,"p_tamano": string,"p_telefono": string }; Returns: number
-                           },
-"guardar_combo":
+            "guardar_combo":
 { Args: { "p_activo": boolean,"p_categorias": (number)[],"p_id": number,"p_nombre": string,"p_precio": number }; Returns: number
                            },
 "guardar_turno":
-{ Args: { "p_id": number,"p_inicio": string,"p_items": Json,"p_medio_pago": string,"p_notas": string,"p_vehiculo_id": number }; Returns: number
+{ Args: { "p_cliente_id": number,"p_id": number,"p_inicio": string,"p_items": Json,"p_medio_pago": string,"p_notas": string }; Returns: number
                            },
 "mi_organizacion":
 { Args: Record<PropertyKey, never>; Returns: string

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { aInstante, fechaValida, horaLocal } from "@/lib/agenda";
-import { MEDIOS_PAGO, normalizarMatricula, TAMANOS } from "@/lib/dominio";
+import { MEDIOS_PAGO } from "@/lib/dominio";
 import { createClient } from "@/lib/supabase/server";
 
 export type FormState = { ok?: true; error?: string; fecha?: string };
@@ -36,13 +36,13 @@ export async function guardarTurno(_prev: FormState, fd: FormData): Promise<Form
 
   const texto = (k: string) => String(fd.get(k) ?? "").trim();
   const id = texto("id") ? Number(texto("id")) : null;
-  const vehiculoId = Number(texto("vehiculo_id"));
+  const clienteId = Number(texto("cliente_id"));
   const fecha = fechaValida(texto("fecha"), "");
   const hora = texto("hora");
   const medio = texto("medio_pago");
   const items = leerItems(texto("items"));
 
-  if (!Number.isInteger(vehiculoId) || vehiculoId <= 0) return { error: "Elegí el vehículo." };
+  if (!Number.isInteger(clienteId) || clienteId <= 0) return { error: "Elegí el cliente." };
   if (!fecha) return { error: "Elegí la fecha." };
   if (!HORA.test(hora)) return { error: "Elegí la hora." };
   if (medio && !esMedio(medio)) return { error: "Medio de pago inválido." };
@@ -51,7 +51,7 @@ export async function guardarTurno(_prev: FormState, fd: FormData): Promise<Form
   const supabase = await createClient();
   const { error } = await supabase.rpc("guardar_turno", {
     p_id: id as number,
-    p_vehiculo_id: vehiculoId,
+    p_cliente_id: clienteId,
     p_inicio: aInstante(fecha, hora),
     p_medio_pago: (medio || null) as string,
     p_notas: (texto("notas") || null) as string,
@@ -104,7 +104,7 @@ export async function cambiarEstado(id: number, estado: CambioEstado, medioPago?
 /** Ventana (en minutos) dentro de la cual otro turno se considera cercano. */
 const VENTANA_CONFLICTO_MIN = 30;
 
-export type Conflicto = { hora: string; matricula: string; cliente: string };
+export type Conflicto = { hora: string; cliente: string };
 
 /** Turnos no cancelados que empiezan a menos de 30 minutos del horario pedido. Solo avisa: no bloquea. */
 export async function buscarConflictos(fecha: string, hora: string, excluirId?: number): Promise<Conflicto[]> {
@@ -116,7 +116,7 @@ export async function buscarConflictos(fecha: string, hora: string, excluirId?: 
   const supabase = await createClient();
   let q = supabase
     .from("turnos")
-    .select("id, inicio, vehiculos ( matricula, clientes ( nombre ) )")
+    .select("id, inicio, clientes ( nombre )")
     .neq("estado", "cancelado")
     .gt("inicio", new Date(centro - margen).toISOString())
     .lt("inicio", new Date(centro + margen).toISOString())
@@ -126,56 +126,25 @@ export async function buscarConflictos(fecha: string, hora: string, excluirId?: 
   const { data } = await q;
   return (data ?? []).map((t) => ({
     hora: horaLocal(t.inicio),
-    matricula: t.vehiculos?.matricula ?? "",
-    cliente: t.vehiculos?.clientes?.nombre ?? "",
+    cliente: t.clientes?.nombre ?? "",
   }));
 }
 
-export type VehiculoNuevo = { id: number; matricula: string | null; modelo: string; tamano: string; cliente: string; clienteId: number };
-export type AltaRapida = {
-  clienteId?: number;
-  nombre?: string;
-  telefono?: string;
-  matricula: string;
-  marcaModelo: string;
-  tamano: string;
-};
+export type ClienteNuevo = { id: number; nombre: string; telefono: string | null };
 
-/** Da de alta un vehículo (y su cliente si es nuevo) sin salir del formulario del turno. */
-export async function altaRapida(datos: AltaRapida): Promise<{ error?: string; vehiculo?: VehiculoNuevo }> {
+/** Da de alta un cliente sin salir del formulario del turno. */
+export async function altaRapidaCliente(datos: { nombre: string; telefono?: string }): Promise<{ error?: string; cliente?: ClienteNuevo }> {
   if (!(await requireUser())) return { error: "Sin sesión." };
 
-  const matricula = normalizarMatricula(datos.matricula ?? "") || null;
-  if (!(datos.tamano in TAMANOS)) return { error: "Elegí un tamaño válido." };
-  const modelo = (datos.marcaModelo ?? "").trim();
-  const repetida = "Ya hay un vehículo con esa matrícula.";
+  const nombre = (datos.nombre ?? "").trim();
+  if (!nombre) return { error: "Poné el nombre del cliente." };
+  const telefono = datos.telefono?.trim() || null;
 
   const supabase = await createClient();
-  let clienteId = datos.clienteId;
+  const { data, error } = await supabase.from("clientes").insert({ nombre, telefono }).select("id, nombre, telefono").single();
+  if (error) return { error: ERROR_GENERICO };
 
-  if (!clienteId) {
-    const nombre = (datos.nombre ?? "").trim();
-    if (!nombre) return { error: "Poné el nombre del cliente." };
-    // El vehículo se inserta siempre abajo, a mano: acá solo se crea el cliente, sin vehículo.
-    const { data, error } = await supabase.rpc("crear_cliente", {
-      p_nombre: nombre,
-      p_telefono: (datos.telefono?.trim() || null) as string,
-      p_notas: null as unknown as string,
-      p_matricula: null as unknown as string,
-      p_marca_modelo: null as unknown as string,
-      p_tamano: null as unknown as string,
-    });
-    if (error) return { error: ERROR_GENERICO };
-    clienteId = data;
-  }
-
-  const { data, error } = await supabase
-    .from("vehiculos")
-    .insert({ cliente_id: clienteId, matricula, marca_modelo: modelo, tamano: datos.tamano })
-    .select("id, matricula, marca_modelo, tamano, clientes ( nombre )")
-    .single();
-  if (error) return { error: error.code === "23505" ? repetida : ERROR_GENERICO };
   revalidatePath("/clientes", "layout");
   revalidatePath("/agenda");
-  return { vehiculo: { id: data.id, matricula: data.matricula, modelo: data.marca_modelo, tamano: data.tamano, cliente: data.clientes?.nombre ?? "", clienteId } };
+  return { cliente: data };
 }

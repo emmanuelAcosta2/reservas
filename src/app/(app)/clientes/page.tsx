@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { PageHeader, Placeholder } from "@/components/page-header";
 import { requireUser } from "@/lib/auth";
-import { iniciales, matriculaSinEspacios } from "@/lib/dominio";
+import { iniciales } from "@/lib/dominio";
 import { formatPesos } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
@@ -30,7 +30,7 @@ export default async function Page({ searchParams }: PageProps<"/clientes">) {
 
   const supabase = await createClient();
   const [clientes, resumen] = await Promise.all([
-    supabase.from("clientes").select("id, nombre, vehiculos(id, matricula, marca_modelo)").order("nombre"),
+    supabase.from("clientes").select("id, nombre, telefono").order("nombre"),
     supabase.from("v_clientes_resumen").select("cliente_id, facturado, visitas"),
   ]);
   if (clientes.error || resumen.error) throw new Error("No se pudieron leer los clientes.");
@@ -38,9 +38,7 @@ export default async function Page({ searchParams }: PageProps<"/clientes">) {
   const porCliente = new Map(resumen.data.map((r) => [r.cliente_id, r]));
   const lista = clientes.data.filter((c) => {
     if (!q) return true;
-    return (
-      sinTildes(c.nombre).includes(sinTildes(q)) || c.vehiculos.some((v) => matriculaSinEspacios(v.matricula).includes(matriculaSinEspacios(q)))
-    );
+    return sinTildes(c.nombre).includes(sinTildes(q)) || (c.telefono ?? "").includes(q);
   });
 
   return (
@@ -68,9 +66,7 @@ export default async function Page({ searchParams }: PageProps<"/clientes">) {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-semibold">{c.nombre}</span>
-                    <span className="block truncate text-[13px] text-muted">
-                      {c.vehiculos.length ? c.vehiculos.map((v) => v.matricula || v.marca_modelo || "Sin matrícula").join(" · ") : "Sin vehículos"}
-                    </span>
+                    <span className="block truncate text-[13px] text-muted">{c.telefono || "Sin teléfono"}</span>
                   </span>
                   <span className="text-right">
                     <span className="block font-display text-lg leading-none font-bold tracking-wide tabular-nums">
@@ -87,7 +83,7 @@ export default async function Page({ searchParams }: PageProps<"/clientes">) {
         </ul>
       ) : (
         <p className="rounded-xl border border-dashed border-line p-6 text-center text-muted">
-          {q ? `No hay clientes ni matrículas que coincidan con “${q}”.` : "Todavía no hay clientes. Creá el primero con “+ Cliente”."}
+          {q ? `No hay clientes que coincidan con “${q}”.` : "Todavía no hay clientes. Creá el primero con “+ Cliente”."}
         </p>
       )}
     </>

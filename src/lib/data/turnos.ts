@@ -10,7 +10,7 @@ type Cliente = SupabaseClient<Database>;
 // hay que indicar cuál (categoria_id) o PostgREST rechaza la consulta por ambigua.
 const SELECT_TURNOS = `
   id, inicio, estado, medio_pago, notas,
-  vehiculos ( id, matricula, marca_modelo, tamano, clientes ( id, nombre, telefono ) ),
+  clientes ( id, nombre, telefono ),
   turno_items (
     tipo, categoria_id, combo_id, precio_cobrado, nota_ajuste,
     categorias!categoria_id ( nombre, color, precio_referencia ),
@@ -60,8 +60,7 @@ export function aTurnoVista(t: Fila): TurnoVista {
       nota: i.nota_ajuste,
     };
   });
-  const v = t.vehiculos!;
-  const c = v.clientes!;
+  const c = t.clientes!;
   return {
     id: t.id,
     dia: diaLocal(t.inicio),
@@ -71,21 +70,19 @@ export function aTurnoVista(t: Fila): TurnoVista {
     medioPago: t.medio_pago,
     notas: t.notas,
     total: items.reduce((s, i) => s + i.precio, 0),
-    vehiculo: { id: v.id, matricula: v.matricula, modelo: v.marca_modelo, tamano: v.tamano },
     cliente: { id: c.id, nombre: c.nombre, telefono: c.telefono },
     items,
   };
 }
 
-/** Todo lo que necesita el formulario de turnos: servicios, combos, vehículos y clientes activos. */
+/** Todo lo que necesita el formulario de turnos: servicios, combos y clientes activos. */
 export async function cargarCatalogo(supabase: Cliente, hoy: string) {
-  const [categorias, combos, vehiculos, clientes] = await Promise.all([
+  const [categorias, combos, clientes] = await Promise.all([
     supabase.from("categorias").select("id, nombre, color, precio_referencia").eq("activa", true).order("nombre"),
     supabase.from("combos").select("id, nombre, precio_referencia, combo_categorias ( categorias ( color ) )").eq("activo", true).order("nombre"),
-    supabase.from("vehiculos").select("id, matricula, marca_modelo, tamano, cliente_id, clientes ( nombre )").order("matricula"),
-    supabase.from("clientes").select("id, nombre").order("nombre"),
+    supabase.from("clientes").select("id, nombre, telefono").order("nombre"),
   ]);
-  for (const r of [categorias, combos, vehiculos, clientes]) if (r.error) error("el catálogo", r.error);
+  for (const r of [categorias, combos, clientes]) if (r.error) error("el catálogo", r.error);
 
   return {
     hoy,
@@ -95,14 +92,6 @@ export async function cargarCatalogo(supabase: Cliente, hoy: string) {
       nombre: c.nombre,
       precio: c.precio_referencia,
       colores: c.combo_categorias.map((x) => x.categorias?.color).filter((x) => x !== undefined),
-    })),
-    vehiculos: vehiculos.data!.map((v) => ({
-      id: v.id,
-      matricula: v.matricula,
-      modelo: v.marca_modelo,
-      tamano: v.tamano,
-      cliente: v.clientes?.nombre ?? "",
-      clienteId: v.cliente_id,
     })),
     clientes: clientes.data!,
   };

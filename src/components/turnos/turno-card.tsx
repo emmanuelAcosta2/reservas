@@ -6,7 +6,7 @@ import { EstadoPill } from "@/components/estado-pill";
 import { btnPrimaryCls, btnSmCls, FormError, inputCls } from "@/components/form";
 import { Modal } from "@/components/modal";
 import { coloresDelTurno, type TurnoVista } from "@/lib/agenda";
-import { iniciales, MEDIOS_PAGO, TAMANOS, type Tamano } from "@/lib/dominio";
+import { iniciales, MEDIOS_PAGO } from "@/lib/dominio";
 import { formatPesos } from "@/lib/format";
 import { cambiarEstado, type CambioEstado } from "./actions";
 import { TurnoForm } from "./turno-form";
@@ -24,17 +24,13 @@ const Franja = ({ turno, horizontal }: { turno: TurnoVista; horizontal?: boolean
 
 const resumen = (t: TurnoVista) => t.items.map((i) => i.nombre).join(" · ");
 
-/** Cuando la matrícula es el único texto que identifica al vehículo (título del modal, fila
- *  compacta), se usa el modelo como respaldo antes de caer a un genérico. */
-const identificarVehiculo = (v: TurnoVista["vehiculo"]) => v.matricula || v.modelo || "Vehículo";
-
 /** Turno en la agenda: al tocarlo abre el detalle con las acciones. `fila` es la versión compacta de la vista semanal. */
 export function TurnoCard({ turno, fila }: { turno: TurnoVista; fila?: boolean }) {
   const cancelado = turno.estado === "cancelado";
 
   return (
     <Modal
-      title={identificarVehiculo(turno.vehiculo)}
+      title={turno.cliente.nombre}
       triggerClassName={
         fila
           ? `flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 rounded-[10px] border border-line bg-raised px-2.5 py-2 text-left lg:bg-raised ${cancelado ? "opacity-50" : ""}`
@@ -47,7 +43,7 @@ export function TurnoCard({ turno, fila }: { turno: TurnoVista; fila?: boolean }
             <Franja turno={turno} horizontal />
             <span className="ml-auto text-[13px] leading-none">{turno.estado === "agendado" ? "●" : turno.estado === "realizado" ? "✓" : "✕"}</span>
             <span className="basis-full text-[12px] leading-snug text-muted lg:basis-full">
-              <b className="text-fg">{identificarVehiculo(turno.vehiculo)}</b> · {resumen(turno)}
+              <b className="text-fg">{turno.cliente.nombre}</b> · {resumen(turno)}
             </span>
           </>
         ) : (
@@ -55,10 +51,8 @@ export function TurnoCard({ turno, fila }: { turno: TurnoVista; fila?: boolean }
             <span className="w-[72px] flex-none pt-0.5 font-display text-[22px] leading-none font-bold tabular-nums">{turno.hora}</span>
             <Franja turno={turno} />
             <span className="flex min-w-0 flex-1 flex-col gap-1">
-              <span className="font-display text-[17px] leading-none font-bold tracking-wide uppercase">{turno.vehiculo.matricula || "Sin matrícula"}</span>
-              <span className="truncate text-[13px] text-muted">
-                {turno.vehiculo.modelo} · {turno.cliente.nombre}
-              </span>
+              <span className="font-display text-[17px] leading-none font-bold tracking-wide uppercase">{turno.cliente.nombre}</span>
+              <span className="truncate text-[13px] text-muted">{turno.cliente.telefono || "Sin teléfono"}</span>
               <span className="text-[13px] opacity-90">{resumen(turno)}</span>
             </span>
             <span className="flex flex-none flex-col items-end justify-between gap-1.5">
@@ -98,16 +92,10 @@ function Panel({ turno, close }: { turno: TurnoVista; close: () => void }) {
     );
   }
 
-  const v = turno.vehiculo;
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">{turno.fechaHora}</p>
-          <p className="mt-1 text-sm text-muted">
-            {v.modelo || "Sin modelo"} · {TAMANOS[v.tamano as Tamano] ?? v.tamano}
-          </p>
-        </div>
+        <p className="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">{turno.fechaHora}</p>
         <EstadoPill estado={turno.estado} />
       </div>
 

@@ -1,5 +1,5 @@
--- Datos de ejemplo SOLO para desarrollo. Se corre con `npm run db:seed`, después de registrar el
--- primer usuario (vía /registro en la app, o Authentication > Users). Es idempotente: si esa
+-- Datos de ejemplo SOLO para desarrollo. Se corre con `npm run db:seed`, después de dar de alta el
+-- primer usuario (vía /crear-cuenta en la app, o Authentication > Users). Es idempotente: si esa
 -- organización ya tiene categorías, no hace nada.
 -- Las fechas son relativas a hoy: hace ~8 semanas hasta 1 semana hacia adelante.
 
@@ -10,20 +10,17 @@ declare
   cb1 bigint; cb2 bigint; cb3 bigint;
   cats_w     bigint[];
   combos_a   bigint[];
-  veh        bigint[];
+  clientes   bigint[];
   d          date;
   hs         int[];
   h          int;
   n          int;
-  v          bigint;
-  tam        text;
-  m          numeric;
+  cli        bigint;
   r          float;
   kinds      text[];
   kind       text;
   used       bigint[];
   pick       bigint;
-  base       integer;
   precio     integer;
   nota       text;
   est        text;
@@ -33,7 +30,7 @@ declare
   hoy        date := (now() at time zone 'America/Montevideo')::date;
 begin
   if org is null then
-    raise exception 'Creá primero una cuenta en /registro (o un usuario en Authentication > Users).';
+    raise exception 'Creá primero una cuenta en /crear-cuenta (o un usuario en Authentication > Users).';
   end if;
   if exists (select 1 from public.categorias where organizacion_id = org) then
     raise notice 'Ya hay datos; no se siembra nada.';
@@ -57,29 +54,14 @@ begin
   insert into public.clientes (organizacion_id, nombre, telefono, notas) values
     (org, 'Martín Rodríguez', '099 123 456', 'Prefiere turnos por la mañana.'),
     (org, 'Lucía Fernández', '098 765 432', null),
-    (org, 'Diego Pereira', '094 221 908', 'Camioneta y auto familiar.'),
+    (org, 'Diego Pereira', '094 221 908', null),
     (org, 'Camila Techera', '091 334 770', null),
     (org, 'Nicolás Silva', '099 888 210', null),
-    (org, 'Valentina Acosta', '096 452 118', 'Cliente frecuente, lavado cada 15 días.'),
+    (org, 'Valentina Acosta', '096 452 118', 'Cliente frecuente, cada 15 días.'),
     (org, 'Rodrigo Long', '092 610 447', null),
     (org, 'Sofía Martínez', '098 101 332', null);
 
-  insert into public.vehiculos (organizacion_id, cliente_id, matricula, marca_modelo, tamano)
-  select org, c.id, x.mat, x.mm, x.tam
-  from (values
-    ('Martín Rodríguez', 'SAB 1234', 'Chevrolet Onix', 'mediano'),
-    ('Lucía Fernández', 'AAC 5521', 'Volkswagen Gol', 'chico'),
-    ('Diego Pereira', 'SBK 8890', 'Toyota Hilux', 'camioneta'),
-    ('Diego Pereira', 'SCD 1020', 'Ford Ka', 'chico'),
-    ('Camila Techera', 'SAX 4417', 'Renault Duster', 'grande'),
-    ('Nicolás Silva', 'SBB 7302', 'Fiat Cronos', 'mediano'),
-    ('Valentina Acosta', 'SAH 2266', 'Peugeot 208', 'chico'),
-    ('Rodrigo Long', 'SCA 9911', 'Toyota Corolla', 'mediano'),
-    ('Sofía Martínez', 'SBM 3050', 'Nissan Kicks', 'grande')
-  ) as x (cliente, mat, mm, tam)
-  join public.clientes c on c.nombre = x.cliente and c.organizacion_id = org;
-
-  select array_agg(id order by id) into veh from public.vehiculos where organizacion_id = org;
+  select array_agg(id order by id) into clientes from public.clientes where organizacion_id = org;
   cats_w := array[lav, lav, lav, tap, ali, ali, pol, cer];
   combos_a := array[cb1, cb2, cb3];
   perform setseed(0.26);
@@ -91,9 +73,7 @@ begin
     from (select unnest(array[9, 10, 11, 12, 14, 15, 16, 17, 18]) as x order by random() limit n) s;
 
     foreach h in array hs loop
-      v := veh[1 + floor(random() * array_length(veh, 1))];
-      select tamano into tam from public.vehiculos where id = v;
-      m := case tam when 'chico' then 1 when 'mediano' then 1.15 when 'grande' then 1.3 else 1.5 end;
+      cli := clientes[1 + floor(random() * array_length(clientes, 1))];
 
       if d > hoy or (d = hoy and h >= hoy_h) then
         est := 'agendado'; pago := null;
@@ -104,8 +84,8 @@ begin
         pago := (array['efectivo', 'transferencia', 'debito', 'credito'])[1 + floor(random() * 4)];
       end if;
 
-      insert into public.turnos (organizacion_id, vehiculo_id, inicio, estado, medio_pago)
-      values (org, v, (d + make_time(h, case when random() < 0.3 then 30 else 0 end, 0)) at time zone 'America/Montevideo', est, pago)
+      insert into public.turnos (organizacion_id, cliente_id, inicio, estado, medio_pago)
+      values (org, cli, (d + make_time(h, case when random() < 0.3 then 30 else 0 end, 0)) at time zone 'America/Montevideo', est, pago)
       returning id into turno;
 
       r := random();
@@ -121,12 +101,12 @@ begin
         used := used || pick;
 
         if kind = 'c' then
-          select precio_referencia into base from public.combos where id = pick;
+          select precio_referencia into precio from public.combos where id = pick;
         else
-          select precio_referencia into base from public.categorias where id = pick;
+          select precio_referencia into precio from public.categorias where id = pick;
         end if;
-        precio := round(base * m / 50.0)::integer * 50;
-        nota := case when m <> 1 then 'Ajuste por tamaño: ' || initcap(tam) else null end;
+        precio := round(precio / 50.0)::integer * 50;
+        nota := null;
         if random() < 0.12 then
           precio := round(precio * 0.9 / 50.0)::integer * 50;
           nota := 'Descuento cliente frecuente';
