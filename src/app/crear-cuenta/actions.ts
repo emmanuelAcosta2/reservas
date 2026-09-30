@@ -2,11 +2,16 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { ALTA_ABIERTA } from "@/lib/alta";
 import { createClient } from "@/lib/supabase/server";
 
 export type CrearCuentaState = { error?: string; confirmarCorreo?: string };
 
 export async function signUp(_prev: CrearCuentaState, formData: FormData): Promise<CrearCuentaState> {
+  // El formulario no se muestra mientras ALTA_ABIERTA es false, pero un POST directo a esta action
+  // igual pasaría por acá: se corta antes de tocar Supabase.
+  if (!ALTA_ABIERTA) return { error: "El alta de cuentas está pausada por ahora." };
+
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const nombreEmpresa = String(formData.get("nombre_empresa") ?? "").trim();

@@ -1,5 +1,6 @@
 import "server-only";
 import { headers } from "next/headers";
+import { ALTA_ABIERTA } from "@/lib/alta";
 import { createClient } from "@/lib/supabase/server";
 import { Copiar } from "../clientes/copiar";
 
@@ -23,15 +24,22 @@ export async function Equipo({ organizacionId }: { organizacionId: string }) {
         ))}
       </ul>
 
-      <div className="flex flex-col gap-2 rounded-xl border border-dashed border-line p-3.5">
-        <p className="text-[13px] text-muted">
-          Compartí este link para que alguien más se sume a esta organización con una cuenta nueva:
-        </p>
-        <div className="flex items-center gap-2">
-          <input readOnly value={linkInvitacion} onFocus={(e) => e.currentTarget.select()} className="min-h-9 w-full truncate rounded-[10px] border border-line bg-raised px-3 text-[13px] text-muted" />
-          <Copiar texto={linkInvitacion} />
+      {ALTA_ABIERTA ? (
+        <div className="flex flex-col gap-2 rounded-xl border border-dashed border-line p-3.5">
+          <p className="text-[13px] text-muted">
+            Compartí este link para que alguien más se sume a esta organización con una cuenta nueva:
+          </p>
+          <div className="flex items-center gap-2">
+            <input readOnly value={linkInvitacion} onFocus={(e) => e.currentTarget.select()} className="min-h-9 w-full truncate rounded-[10px] border border-line bg-raised px-3 text-[13px] text-muted" />
+            <Copiar texto={linkInvitacion} />
+          </div>
         </div>
-      </div>
+      ) : (
+        <p className="rounded-xl border border-dashed border-line p-3.5 text-[13px] text-muted">
+          El link para sumar gente por cuenta propia está pausado por ahora. Pedinos que demos de alta al nuevo
+          miembro a mano.
+        </p>
+      )}
     </section>
   );
 }

@@ -33,7 +33,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${poppins.variable} h-full antialiased`}
       style={{ "--color-brand": org.colorMarca, "--color-brand-ink": tintaSobre(org.colorMarca) } as React.CSSProperties}
     >
-      <body className="min-h-full">{children}</body>
+      {/* suppressHydrationWarning: extensiones como Grammarly inyectan atributos en <body> antes de
+          hidratar (data-gr-ext-installed, etc.); no es un mismatch real de la app. */}
+      <body className="min-h-full" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }
