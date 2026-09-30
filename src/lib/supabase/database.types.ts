@@ -2,7 +2,7 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
-
+  
   "public": {
           Tables: {
             "categorias": {
@@ -66,6 +66,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "combos"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "combo_categorias_organizacion_id_fkey"
+      columns: ["organizacion_id"]
+isOneToOne: false
+      referencedRelation: "organizaciones"
+      referencedColumns: ["id"]
     }
                   ]
                 },"combos": {
@@ -117,7 +123,7 @@ isOneToOne: false
                     "color_marca"?: string,"creado_en"?: string,"id"?: string,"logo_url"?: string | null,"nombre"?: string
                   }
                   Relationships: [
-
+                    
                   ]
                 },"turno_item_categorias": {
                   Row: {
@@ -141,6 +147,12 @@ isOneToOne: false
       columns: ["item_id"]
 isOneToOne: false
       referencedRelation: "turno_items"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "turno_item_categorias_organizacion_id_fkey"
+      columns: ["organizacion_id"]
+isOneToOne: false
+      referencedRelation: "organizaciones"
       referencedColumns: ["id"]
     }
                   ]
@@ -168,6 +180,12 @@ isOneToOne: false
       referencedRelation: "combos"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "turno_items_organizacion_id_fkey"
+      columns: ["organizacion_id"]
+isOneToOne: false
+      referencedRelation: "organizaciones"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "turno_items_turno_id_fkey"
       columns: ["turno_id"]
 isOneToOne: false
@@ -193,6 +211,12 @@ isOneToOne: false
                   }
                   Relationships: [
                     {
+      foreignKeyName: "turnos_organizacion_id_fkey"
+      columns: ["organizacion_id"]
+isOneToOne: false
+      referencedRelation: "organizaciones"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "turnos_vehiculo_id_fkey"
       columns: ["vehiculo_id"]
 isOneToOne: false
@@ -223,6 +247,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "v_clientes_resumen"
       referencedColumns: ["cliente_id"]
+    },{
+      foreignKeyName: "vehiculos_organizacion_id_fkey"
+      columns: ["organizacion_id"]
+isOneToOne: false
+      referencedRelation: "organizaciones"
+      referencedColumns: ["id"]
     }
                   ]
                 }
@@ -233,14 +263,14 @@ isOneToOne: false
                     "cliente_id": number | null,"facturado": number | null,"ultima_visita": string | null,"visitas": number | null
                   }
                   Relationships: [
-
+                    
                   ]
                 },"v_servicios_realizados": {
                   Row: {
                     "categoria_id": number | null,"combo_id": number | null,"fecha": string | null,"item_id": number | null,"origen": string | null,"turno_id": number | null
                   }
                   Relationships: [
-
+                    
                   ]
                 },"v_turnos_total": {
                   Row: {
@@ -271,7 +301,9 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: string
                            },
 "miembros_equipo":
-{ Args: Record<PropertyKey, never>; Returns: { email: string, creado_en: string }[]
+{ Args: Record<PropertyKey, never>; Returns: {
+              "creado_en": string,"email": string
+            }[]
                            },
 "registro_turnos":
 { Args: { "p_categoria"?: number,"p_combo"?: number,"p_desde": string,"p_desplazamiento"?: number,"p_hasta": string,"p_limite"?: number }; Returns: Json
@@ -397,7 +429,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-
+            
           }
         }
 } as const

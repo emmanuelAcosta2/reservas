@@ -10,6 +10,15 @@ const input = "min-h-11 w-full rounded-[10px] border border-line bg-raised px-3 
 export function CrearCuentaForm({ organizacionId }: { organizacionId?: string }) {
   const [state, action, pending] = useActionState(signUp, initial);
 
+  if (state.confirmarCorreo) {
+    return (
+      <p className="rounded-xl border border-dashed border-line p-4 text-sm text-muted">
+        Te mandamos un correo a <span className="font-semibold text-fg">{state.confirmarCorreo}</span>. Abrí el link
+        para confirmar la cuenta y después ingresá normalmente.
+      </p>
+    );
+  }
+
   return (
     <form action={action} className="flex flex-col gap-4">
       <input type="hidden" name="organizacion_id" value={organizacionId ?? ""} />
