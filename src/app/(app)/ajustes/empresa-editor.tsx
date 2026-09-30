@@ -4,43 +4,22 @@ import { useActionState, useState } from "react";
 import { btnPrimaryCls, Field, FormError, inputCls } from "@/components/form";
 import { guardarEmpresa, subirLogo, type FormState } from "./actions";
 
-export function EmpresaEditor({ nombre, colorMarca }: { nombre: string; colorMarca: string }) {
+export function EmpresaEditor({ nombre }: { nombre: string }) {
   return (
     <div className="flex flex-col gap-6 lg:flex-row">
-      <DatosForm nombre={nombre} colorMarca={colorMarca} />
+      <DatosForm nombre={nombre} />
       <LogoForm />
     </div>
   );
 }
 
-function DatosForm({ nombre, colorMarca }: { nombre: string; colorMarca: string }) {
+function DatosForm({ nombre }: { nombre: string }) {
   const [state, action, pending] = useActionState<FormState, FormData>(guardarEmpresa, {});
-  const [color, setColor] = useState(colorMarca.toUpperCase());
 
   return (
     <form action={action} className="flex flex-1 flex-col gap-4">
       <Field label="Nombre del negocio" htmlFor="empresa-nombre">
         <input id="empresa-nombre" name="nombre" required defaultValue={nombre} className={inputCls} />
-      </Field>
-
-      <Field label="Color de marca" htmlFor="empresa-color" hint="Se usa en botones, links activos y el acento del menú.">
-        <div className="flex items-center gap-3">
-          <label
-            className="relative size-11 flex-none cursor-pointer rounded-[10px] border border-line"
-            style={{ backgroundColor: color }}
-          >
-            <span className="sr-only">Elegir color</span>
-            <input
-              id="empresa-color"
-              type="color"
-              value={color.toLowerCase()}
-              onChange={(e) => setColor(e.target.value.toUpperCase())}
-              className="absolute inset-0 size-full cursor-pointer opacity-0"
-            />
-          </label>
-          <input type="hidden" name="color_marca" value={color} />
-          <span className="tabular-nums text-muted">{color}</span>
-        </div>
       </Field>
 
       <FormError message={state.error} />

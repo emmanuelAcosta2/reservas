@@ -83,15 +83,13 @@ export async function guardarEmpresa(_prev: FormState, fd: FormData): Promise<Fo
   if (!(await requireUser())) return { error: "Sin sesión." };
 
   const nombre = texto(fd, "nombre");
-  const color = texto(fd, "color_marca");
   if (!nombre) return { error: "Poné un nombre." };
-  if (!COLOR.test(color)) return { error: "Elegí un color." };
 
   const supabase = await createClient();
   const { data: org } = await supabase.from("organizaciones").select("id").single();
   if (!org) return { error: "No se pudo identificar la organización." };
 
-  const { error } = await supabase.from("organizaciones").update({ nombre, color_marca: color }).eq("id", org.id);
+  const { error } = await supabase.from("organizaciones").update({ nombre }).eq("id", org.id);
   if (error) return { error: "No se pudo guardar. Probá de nuevo." };
 
   revalidatePath("/", "layout");

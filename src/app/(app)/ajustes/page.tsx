@@ -79,7 +79,7 @@ export default async function Page() {
 
       <section className="flex flex-col gap-4 rounded-[14px] border border-line bg-surface p-4">
         <p className="text-[11px] font-semibold tracking-[0.14em] text-muted uppercase">Empresa</p>
-        <EmpresaEditor nombre={organizacion.nombre} colorMarca={organizacion.colorMarca} />
+        <EmpresaEditor nombre={organizacion.nombre} />
       </section>
 
       <Equipo organizacionId={organizacion.id} />
