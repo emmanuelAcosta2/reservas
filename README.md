@@ -11,9 +11,10 @@ Next.js (App Router) + Supabase (Postgres, Auth, Storage).
 - Cada usuario de Supabase Auth pertenece a una sola **organización** (tabla `miembros`).
 - Al registrarse (`/crear-cuenta`), si no viene de un link de invitación se le crea una organización
   nueva (queda como su único miembro); si viene de `/crear-cuenta?org=<id>` (el link que se comparte
-  desde Ajustes → Equipo), se suma a esa organización existente.
-- Todas las tablas de dominio (`clientes`, `vehiculos`, `turnos`, etc.) tienen `organizacion_id`, con
-  RLS que solo deja ver/editar filas de la organización del usuario logueado — ver
+  desde Ajustes → Equipo), se suma a esa organización existente. El alta pública está pausada por
+  ahora (ver `src/lib/alta.ts`): las cuentas se crean a mano hasta integrar cobro automático.
+- Todas las tablas de dominio (`clientes`, `turnos`, etc.) tienen `organizacion_id`, con RLS que solo
+  deja ver/editar filas de la organización del usuario logueado — ver
   `supabase/migrations/..._esquema_inicial.sql`.
 - El logo, el nombre y el color de marca se editan en Ajustes → Empresa y se guardan en
   `organizaciones`; `src/app/layout.tsx` los lee en cada request y los aplica como variables CSS.
@@ -36,3 +37,18 @@ Next.js (App Router) + Supabase (Postgres, Auth, Storage).
 - `npm run lint`
 - `npm run db:push` / `npm run db:seed` / `npm run db:types` — ver `scripts/db.mjs` (usan
   `DATABASE_URL` de `.env.local`)
+
+## Deploy (AWS Amplify Hosting)
+
+`amplify.yml` en la raíz define el build (Next.js SSR — Server Actions, Server Components y
+`src/proxy.ts` necesitan runtime Node, no exportación estática).
+
+1. Amplify Console → **New app → Host web app** → conectar el repo `emmanuelAcosta2/reservas`, rama
+   `main`.
+2. Variables de entorno de la app (Amplify Console → App settings → Environment variables) — **solo**
+   las dos públicas, `DATABASE_URL` no la usa la app en runtime (es solo para `scripts/db.mjs` en
+   local) y no debería cargarse acá:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+3. Las migraciones (`npm run db:push`) se corren desde donde ya estén aplicadas hoy — Amplify solo
+   construye y sirve la app, no toca la base.
