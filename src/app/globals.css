@@ -1,9 +1,39 @@
 @import "tailwindcss";
 
-/* Paleta oscura fija. --color-brand y --color-brand-ink son el color de marca de cada
-   organización: layout.tsx los sobreescribe en runtime leyendo `organizaciones.color_marca`
-   (ver src/lib/color.ts). Los valores de acá abajo son el fallback sin sesión (login, registro). */
+/* Modo claro (por defecto) y modo oscuro (a elección, con el switch — ver theme-toggle.tsx).
+   --color-brand y --color-brand-ink son el color de marca de cada organización: layout.tsx los
+   sobreescribe en runtime leyendo `organizaciones.color_marca` (ver src/lib/color.ts). Los valores
+   de acá abajo son el fallback sin sesión (login, registro) y el del propio modo oscuro.
+
+   OJO: estos colores van en un @theme SIN "inline" a propósito. Con "inline" Tailwind resuelve
+   cada utilidad (bg-surface, text-fg, etc.) al valor literal en tiempo de build, y deja de
+   reaccionar a los overrides de --color-* en runtime (ni el color de marca por organización ni
+   el switch de tema funcionarían). Los --font-* sí necesitan "inline" porque su valor depende de
+   otra variable (--font-poppins, que inyecta next/font) — van en un bloque aparte. */
+@theme {
+  --color-canvas: #f4f5f7;
+  --color-surface: #ffffff;
+  --color-raised: #eef0f3;
+  --color-line: #dde1e6;
+  --color-fg: #14161a;
+  --color-muted: #6b7280;
+  --color-brand: #2563eb;
+  --color-brand-ink: #ffffff;
+  --color-ok: #16a34a;
+  --color-bad: #dc2626;
+}
+
 @theme inline {
+  --font-display: var(--font-poppins), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: var(--font-poppins), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
   --color-canvas: #0d0e11;
   --color-surface: #15171c;
   --color-raised: #1d2026;
@@ -14,12 +44,6 @@
   --color-brand-ink: #1a1004;
   --color-ok: #45c48b;
   --color-bad: #e5584f;
-  --font-display: var(--font-poppins), system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-sans: var(--font-poppins), system-ui, -apple-system, "Segoe UI", sans-serif;
-}
-
-:root {
-  color-scheme: dark;
 }
 
 html,

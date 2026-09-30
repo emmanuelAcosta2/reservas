@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export type Organizacion = { id: string; nombre: string; logoUrl: string | null; colorMarca: string };
 
-const DEFAULT: Organizacion = { id: "", nombre: "Reservas", logoUrl: null, colorMarca: "#f28c1b" };
+const DEFAULT: Organizacion = { id: "", nombre: "Reservas", logoUrl: null, colorMarca: "#2563eb" };
 
 /** Organización del usuario de la sesión actual, o el branding por defecto sin sesión/Supabase. */
 export async function getOrganizacion(): Promise<Organizacion> {
