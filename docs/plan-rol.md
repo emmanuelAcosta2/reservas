@@ -21,18 +21,18 @@ Los clientes finales **no** entran a `miembros`: esa tabla implica "ve todo el n
 
 ## 3. Roles de staff
 
-`miembros.rol` como enum: `owner`, `admin`, `empleado`. Si más adelante cada negocio quiere definir sus roles, se agregan tablas `roles` y `permisos`.
+`miembros.rol` como enum fijo: `owner`, `admin`, `empleado`. Roles personalizables por negocio quedan para una etapa posterior (tablas `roles` y `permisos`); el enum se diseña para poder migrarlo sin romper policies.
 
 | Recurso | owner | admin | empleado |
 |---|---|---|---|
-| Agenda (ver y tomar turnos) | ✅ | ✅ | ✅ (alcance por definir, ver §9) |
+| Agenda (ver y tomar turnos) | ✅ | ✅ | ✅ todos los turnos del negocio |
 | Registro (historial) | ✅ | ✅ | ✅ sin montos |
 | Clientes | ✅ | ✅ | ✅ nombre y teléfono, sin facturación |
 | Reportes y facturación | ✅ | ✅ | ❌ |
 | Ajustes: catálogo, precios y combos | ✅ | ✅ | ❌ |
 | Ajustes: empresa, equipo y reservas online | ✅ | ❌ | ❌ |
 
-Si el empleado ve solo lo suyo, hace falta `turnos.asignado_a`, que hoy no existe.
+El empleado ve todos los turnos, así que **no** hace falta `turnos.asignado_a`. Los empleados pueden confirmar o rechazar turnos pendientes (ver §5).
 
 ## 4. Dónde se impone
 
@@ -66,7 +66,7 @@ Agregar `pendiente` al `check` de `turnos.estado` (hoy: `agendado`, `realizado`,
 `pendiente` → (el negocio confirma) → `agendado` → `realizado`
 `pendiente` → (el negocio rechaza o el cliente cancela) → `cancelado`
 
-Hay que decidir si un turno `pendiente` bloquea el horario en la agenda (ver §9).
+Un turno `pendiente` **bloquea el horario** mientras espera. Riesgo conocido: un pendiente sin atender traba la agenda. Mitigación posible más adelante: vencimiento automático o recordatorio al negocio.
 
 ### Cómo se hace cumplir
 
@@ -83,12 +83,14 @@ Además:
 - La página pública `/{slug}/reservar` muestra "Este negocio no recibe reservas online" si el interruptor está apagado.
 - Se agrega `organizaciones.slug` (único) para armar la URL.
 - Los datos públicos del negocio (nombre, logo, color, si acepta reservas) se exponen con una función `security definer` por `slug`, sin abrir la tabla a `anon`.
-- Policies del cliente: `select` de sus propios turnos y `update` solo para cancelar los suyos.
-- Alternativa más simple: reserva pública sin cuenta (sin "mis turnos" ni cancelación segura).
+- Policies del cliente (etapa de cuentas): `select` de sus propios turnos y `update` solo para cancelar los suyos.
+- **Primera etapa: sin cuenta.** El cliente reserva con nombre, teléfono y correo, sin registrarse. `reservar_turno()` se expone a `anon`, así que necesita protección contra abuso (límite de pedidos por IP/teléfono y captcha). Busca la ficha en `clientes` por teléfono dentro del negocio o crea una nueva. Para cancelar sin login, el correo trae un enlace con token firmado de un solo turno.
+- **Segunda etapa: cuentas.** `cliente_cuentas` vincula un usuario con su ficha. Una misma cuenta puede estar en varios negocios (una ficha por negocio). Suma "mis turnos" y cancelación autenticada.
+- **Cancelación con reservas apagadas:** el cliente con turno ya agendado **puede seguir cancelándolo**. Apagar el interruptor solo frena reservas nuevas.
 
 ### Quién confirma
 
-Confirmar o rechazar un turno `pendiente`: owner y admin. Si el empleado también puede hacerlo se define en §9.
+Confirmar o rechazar un turno `pendiente`: todo el staff (owner, admin y empleado). Al confirmar o rechazar se avisa al cliente por correo (ver §7).
 
 ## 6. Invitaciones
 
@@ -99,7 +101,8 @@ Reemplazan el link `?org=<id>` por `invitaciones(token, organizacion_id, rol, em
 - Horarios de atención y disponibilidad por negocio.
 - Duración de los servicios.
 - Margen de agenda: anticipación mínima y máximo hacia adelante.
-- Notificación al negocio cuando entra una reserva `pendiente`, y al cliente cuando se confirma o rechaza.
+- **Correo al cliente** cuando su reserva se confirma o se rechaza (y con el enlace de cancelación). Hace falta un proveedor de envío (el correo de Supabase Auth no alcanza para esto) y una plantilla por negocio con su nombre y logo.
+- Aviso al negocio cuando entra una reserva `pendiente` (en la app y, opcionalmente, por correo).
 
 ## 8. Impacto en usuarios actuales y despliegue
 
@@ -130,16 +133,28 @@ Otros puntos:
 
 Para el usuario actual no cambia nada al principio: mismos permisos y pantallas. Lo único nuevo, visible solo para el owner, es en Ajustes la gestión de roles y los interruptores.
 
-## 9. Preguntas abiertas
+## 9. Decisiones tomadas y preguntas abiertas
 
-1. ¿El empleado ve todos los turnos del negocio o solo los asignados a él?
-2. ¿Los clientes necesitan cuenta, o alcanza con reservar sin login?
-3. ¿Los roles son fijos (owner, admin, empleado) o los define cada negocio?
-4. ¿Una misma cuenta de cliente puede estar en varios negocios?
-5. Con las reservas online apagadas, ¿los clientes con cuenta pueden seguir cancelando sus turnos ya agendados?
-6. ¿Un turno `pendiente` bloquea el horario en la agenda mientras espera confirmación?
-7. ¿Puede el empleado confirmar o rechazar turnos pendientes, o solo owner y admin?
-8. ¿Hay que avisar al cliente por correo (o WhatsApp) cuando su reserva se confirma o se rechaza?
+**Decididas:**
+
+| Tema | Decisión |
+|---|---|
+| Alcance del empleado | Ve todos los turnos del negocio |
+| Cuentas de cliente | Primero reserva sin cuenta; cuentas en una etapa posterior |
+| Roles | Fijos ahora (enum), personalizables después |
+| Cuenta de cliente en varios negocios | Sí |
+| Cancelar con reservas apagadas | Sí, el cliente puede cancelar lo ya agendado |
+| Turno `pendiente` | Bloquea el horario |
+| Quién confirma o rechaza | Todo el staff |
+| Aviso al cliente | Por correo |
+
+**Abiertas (surgen de lo decidido):**
+
+1. Pendientes que bloquean horario: ¿vencimiento automático (por ejemplo 24 h) o recordatorio al negocio para que no traben la agenda?
+2. Reserva sin cuenta: ¿qué proveedor de correo se usa y desde qué dominio?
+3. Reserva sin cuenta: ¿captcha, límite por IP/teléfono, o ambos?
+4. Si una persona reserva sin cuenta y después crea cuenta, ¿se vinculan sus turnos anteriores por correo o teléfono?
+5. Horarios de atención, duración de servicios y margen de agenda (ver §7).
 
 ## 10. Orden de implementación
 
@@ -148,5 +163,6 @@ Para el usuario actual no cambia nada al principio: mismos permisos y pantallas.
 3. UI de Ajustes → Equipo: cambiar rol e invitar con rol.
 4. `slug`, `reservas_online`, `reservas_requieren_aprobacion` y sus toggles (solo owner) en Ajustes → Empresa.
 5. Horarios y disponibilidad por negocio.
-6. Estado `pendiente`, bandeja de confirmación y `reservar_turno()`.
-7. Cuentas de cliente final y portal de reserva.
+6. Estado `pendiente` (bloquea horario), bandeja de confirmación para todo el staff y `reservar_turno()` sin cuenta, con protección anti abuso.
+7. Correos al cliente (confirmación, rechazo, enlace de cancelación) y cancelación por token.
+8. Cuentas de cliente final (multi-negocio) y portal "mis turnos".
