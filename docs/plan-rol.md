@@ -66,7 +66,7 @@ Agregar `pendiente` al `check` de `turnos.estado` (hoy: `agendado`, `realizado`,
 `pendiente` → (el negocio confirma) → `agendado` → `realizado`
 `pendiente` → (el negocio rechaza o el cliente cancela) → `cancelado`
 
-Un turno `pendiente` **bloquea el horario** mientras espera. Riesgo conocido: un pendiente sin atender traba la agenda. Mitigación posible más adelante: vencimiento automático o recordatorio al negocio.
+Un turno `pendiente` **bloquea el horario** mientras espera. Riesgo conocido: un pendiente sin atender traba la agenda. Mitigación: **vencimiento configurable**. El owner elige en Ajustes cuántas horas espera un pendiente antes de cancelarse solo (o "sin vencimiento"), vía `organizaciones.pendiente_vence_horas integer null` (null = no vence). Un job programado (pg_cron) cancela los vencidos, libera el horario y avisa al cliente por correo.
 
 ### Cómo se hace cumplir
 
@@ -84,8 +84,8 @@ Además:
 - Se agrega `organizaciones.slug` (único) para armar la URL.
 - Los datos públicos del negocio (nombre, logo, color, si acepta reservas) se exponen con una función `security definer` por `slug`, sin abrir la tabla a `anon`.
 - Policies del cliente (etapa de cuentas): `select` de sus propios turnos y `update` solo para cancelar los suyos.
-- **Primera etapa: sin cuenta.** El cliente reserva con nombre, teléfono y correo, sin registrarse. `reservar_turno()` se expone a `anon`, así que necesita protección contra abuso (límite de pedidos por IP/teléfono y captcha). Busca la ficha en `clientes` por teléfono dentro del negocio o crea una nueva. Para cancelar sin login, el correo trae un enlace con token firmado de un solo turno.
-- **Segunda etapa: cuentas.** `cliente_cuentas` vincula un usuario con su ficha. Una misma cuenta puede estar en varios negocios (una ficha por negocio). Suma "mis turnos" y cancelación autenticada.
+- **Primera etapa: sin cuenta.** El cliente reserva con nombre, teléfono y correo, sin registrarse. `reservar_turno()` se expone a `anon`, así que necesita protección contra abuso: **captcha (Cloudflare Turnstile) más límite de pedidos por IP y por teléfono**, validados del lado del servidor antes de llamar a la función. Busca la ficha en `clientes` por teléfono dentro del negocio o crea una nueva. Para cancelar sin login, el correo trae un enlace con token firmado de un solo turno.
+- **Segunda etapa: cuentas.** `cliente_cuentas` vincula un usuario con su ficha. Al confirmar el correo de la cuenta nueva se vinculan los turnos previos hechos con ese mismo correo (nunca por teléfono sin verificar). Una misma cuenta puede estar en varios negocios (una ficha por negocio). Suma "mis turnos" y cancelación autenticada.
 - **Cancelación con reservas apagadas:** el cliente con turno ya agendado **puede seguir cancelándolo**. Apagar el interruptor solo frena reservas nuevas.
 
 ### Quién confirma
@@ -100,8 +100,7 @@ Reemplazan el link `?org=<id>` por `invitaciones(token, organizacion_id, rol, em
 
 - Horarios de atención y disponibilidad por negocio.
 - Duración de los servicios.
-- Margen de agenda: anticipación mínima y máximo hacia adelante.
-- **Correo al cliente** cuando su reserva se confirma o se rechaza (y con el enlace de cancelación). Hace falta un proveedor de envío (el correo de Supabase Auth no alcanza para esto) y una plantilla por negocio con su nombre y logo.
+- **Correo al cliente** cuando su reserva se confirma o se rechaza (y con el enlace de cancelación). Proveedor de envío: **Resend** (el correo de Supabase Auth no alcanza para esto), con dominio propio verificado y una plantilla por negocio con su nombre y logo.
 - Aviso al negocio cuando entra una reserva `pendiente` (en la app y, opcionalmente, por correo).
 
 ## 8. Impacto en usuarios actuales y despliegue
@@ -148,13 +147,21 @@ Para el usuario actual no cambia nada al principio: mismos permisos y pantallas.
 | Quién confirma o rechaza | Todo el staff |
 | Aviso al cliente | Por correo |
 
-**Abiertas (surgen de lo decidido):**
+**Decididas en la segunda ronda:**
 
-1. Pendientes que bloquean horario: ¿vencimiento automático (por ejemplo 24 h) o recordatorio al negocio para que no traben la agenda?
-2. Reserva sin cuenta: ¿qué proveedor de correo se usa y desde qué dominio?
-3. Reserva sin cuenta: ¿captcha, límite por IP/teléfono, o ambos?
-4. Si una persona reserva sin cuenta y después crea cuenta, ¿se vinculan sus turnos anteriores por correo o teléfono?
-5. Horarios de atención, duración de servicios y margen de agenda (ver §7).
+| Tema | Decisión |
+|---|---|
+| Vencimiento de pendientes | Configurable por el owner (horas o sin vencimiento) |
+| Proveedor de correo | Resend |
+| Anti abuso en reserva sin cuenta | Captcha (Turnstile) más límite por IP y teléfono |
+| Vincular turnos previos a cuenta nueva | Sí, por correo verificado |
+| Horarios, duración y margen | Versión simple por negocio |
+
+**Abiertas:**
+
+1. Dominio desde el que se envían los correos (hay que verificarlo en Resend).
+2. Valores por defecto de horario semanal, margen mínimo y máximo, y duración de servicios existentes (que hoy no tienen duración).
+3. Qué hace el cliente sin cuenta si necesita cambiar (no cancelar) su turno.
 
 ## 10. Orden de implementación
 
