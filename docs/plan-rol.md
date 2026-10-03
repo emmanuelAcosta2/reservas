@@ -98,8 +98,7 @@ Reemplazan el link `?org=<id>` por `invitaciones(token, organizacion_id, rol, em
 
 ## 7. Pendientes de modelado
 
-- Horarios de atención y disponibilidad por negocio.
-- Duración de los servicios.
+- **Horarios, duración y margen (versión simple por negocio):** un horario semanal por negocio con días cerrados, duración fija por servicio (`categorias.duracion_min`, `combos.duracion_min`; hoy no existe) y margen configurable en `organizaciones` (anticipación mínima y máximo hacia adelante). Sin horarios por empleado por ahora.
 - **Correo al cliente** cuando su reserva se confirma o se rechaza (y con el enlace de cancelación). Proveedor de envío: **Resend** (el correo de Supabase Auth no alcanza para esto), con dominio propio verificado y una plantilla por negocio con su nombre y logo.
 - Aviso al negocio cuando entra una reserva `pendiente` (en la app y, opcionalmente, por correo).
 
